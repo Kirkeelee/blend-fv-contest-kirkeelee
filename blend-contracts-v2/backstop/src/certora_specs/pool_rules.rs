@@ -49,3 +49,65 @@ pub fn simple_share_roundtrip_correct(pool_shares: i64, pool_tokens: i64, shares
     );
     cvlr_assert!(shares >= shares_res);
 }
+
+
+// Rule to check the effects of the withdraw function
+#[rule]
+pub fn check_withdraw_effects(pool_balance: &mut PoolBalance, tokens: i128, shares: i128, user: Address, e: &Env) {
+    let initial_tokens = pool_balance.tokens;
+    let initial_shares = pool_balance.shares;
+    let initial_q4w = pool_balance.q4w;
+
+    // Assume the pool has enough tokens and shares for the withdrawal
+    cvlr_assume!(initial_tokens >= tokens && initial_shares >= shares && initial_q4w >= shares);
+
+    // Call the withdraw function
+    pool_balance.withdraw(e, tokens, shares);
+
+    // Assert the expected outcomes
+    cvlr_assert!(pool_balance.tokens == initial_tokens - tokens);
+    cvlr_assert!(pool_balance.shares == initial_shares - shares);
+    cvlr_assert!(pool_balance.q4w == initial_q4w - shares);
+}
+
+
+// Rule to check the effects of the deposit function
+#[rule]
+pub fn check_deposit_effects(pool_balance: &mut PoolBalance, tokens: i128, shares: i128) {
+    let initial_tokens = pool_balance.tokens;
+    let initial_shares = pool_balance.shares;
+
+    // Call the deposit function
+    pool_balance.deposit(tokens, shares);
+
+    // Assert the expected outcomes
+    cvlr_assert!(pool_balance.tokens == initial_tokens + tokens);
+    cvlr_assert!(pool_balance.shares == initial_shares + shares);
+}
+
+// Rule to check the effects of the queue_for_withdraw function
+#[rule]
+pub fn check_queue_for_withdraw_effects(pool_balance: &mut PoolBalance, shares: i128) {
+    let initial_q4w = pool_balance.q4w;
+
+    // Call the queue_for_withdraw function
+    pool_balance.queue_for_withdraw(shares);
+
+    // Assert the expected outcomes
+    cvlr_assert!(pool_balance.q4w == initial_q4w + shares);
+}
+
+// Rule to check the effects of the dequeue_q4w function
+#[rule]
+pub fn check_dequeue_q4w_effects(pool_balance: &mut PoolBalance, shares: i128, e: &Env) {
+    let initial_q4w = pool_balance.q4w;
+
+    // Assume the pool has enough shares queued for withdrawal
+    cvlr_assume!(initial_q4w >= shares);
+
+    // Call the dequeue_q4w function
+    pool_balance.dequeue_q4w(e, shares);
+
+    // Assert the expected outcomes
+    cvlr_assert!(pool_balance.q4w == initial_q4w - shares);
+}
